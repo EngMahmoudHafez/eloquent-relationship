@@ -141,105 +141,112 @@ foreach ($users as $user) {
 
 ### Scenario 7: Batch Updates
 
--   **Good Practice:** Use `whereHas` to filter relations without loading them.
+-   **Good Practice:** Use Eloquent's `update` method when performing batch updates.
 
 ```php
 
-// Retrieve posts with at least one comment containing the word 'Eloquent'
-$posts = App\\Models\\Post::whereHas('comments', function ($query) {
-    $query->where('content', 'like', '%Eloquent%');
-})->get();
+// Update all posts marked as 'draft' to 'published'
+App\\Models\\Post::where('status', 'draft')->update(['status' => 'published']);
 ```
 
--   **Bad Practice:** Loading the relation unnecessarily.
+-   **Bad Practice:** Looping through models to update them individually.
 
 ```php
-// This will load all the comments even if we only need to check their existence
-$posts = App\\Models\\Post::with('comments')->get()->filter(function ($post) {
-    return $post->comments->contains('content', 'like', '%Eloquent%');
+$posts = App\\Models\\Post::where('status', 'draft')->get();
+
+foreach ($posts as $post) {
+    $post->status = 'published';
+    $post->save();
+}
+```
+
+### Scenario 8: Chunking Results for Memory Efficiency
+
+-   **Good Practice:** Use `chunk` or `lazy` to handle large datasets efficiently.
+
+```php
+
+// Process large datasets using chunk to manage memory consumption
+App\\Models\\User::where('active', true)->chunk(100, function ($users) {
+    // Perform actions on chunks of 100 users at a time
 });
 ```
 
-### Scenario 1: Filtering Relations Without Loading Them
-
--   **Good Practice:** Use `whereHas` to filter relations without loading them.
+-   **Bad Practice:** Loading entire datasets into memory.
 
 ```php
+$users = App\\Models\\User::where('active', true)->get(); // Memory-intensive on large datasets
 
-// Retrieve posts with at least one comment containing the word 'Eloquent'
-$posts = App\\Models\\Post::whereHas('comments', function ($query) {
-    $query->where('content', 'like', '%Eloquent%');
-})->get();
+foreach ($users as $user) {
+    // ...
+}
 ```
 
--   **Bad Practice:** Loading the relation unnecessarily.
+### Scenario 9: Avoiding Redundant Relationship Queries
+
+-   **Good Practice:** Use the `onceWith` method to load a relationship only once.
 
 ```php
-// This will load all the comments even if we only need to check their existence
-$posts = App\\Models\\Post::with('comments')->get()->filter(function ($post) {
-    return $post->comments->contains('content', 'like', '%Eloquent%');
+
+$users = App\\Models\\User::all();
+
+$users->each(function ($user) {
+    // The 'profile' relation is loaded only once then reused
+    $profile = $user->onceWith('profile')->profile;
 });
 ```
 
-### Scenario 1: Filtering Relations Without Loading Them
-
--   **Good Practice:** Use `whereHas` to filter relations without loading them.
+-   **Bad Practice:** Loading the same relationship multiple times.
 
 ```php
+$users = App\\Models\\User::all();
 
-// Retrieve posts with at least one comment containing the word 'Eloquent'
-$posts = App\\Models\\Post::whereHas('comments', function ($query) {
-    $query->where('content', 'like', '%Eloquent%');
-})->get();
-```
-
--   **Bad Practice:** Loading the relation unnecessarily.
-
-```php
-// This will load all the comments even if we only need to check their existence
-$posts = App\\Models\\Post::with('comments')->get()->filter(function ($post) {
-    return $post->comments->contains('content', 'like', '%Eloquent%');
+$users->each(function ($user) {
+    // The 'profile' relationship is loaded for each iteration
+    $profile = $user->profile;
 });
 ```
 
-### Scenario 1: Filtering Relations Without Loading Them
+### Scenario 10: Cautious Attribute Casting
 
--   **Good Practice:** Use `whereHas` to filter relations without loading them.
+-   **Good Practice:** Cast attributes to the correct type to ensure proper data handling.
 
 ```php
 
-// Retrieve posts with at least one comment containing the word 'Eloquent'
-$posts = App\\Models\\Post::whereHas('comments', function ($query) {
-    $query->where('content', 'like', '%Eloquent%');
-})->get();
+class Order extends Model
+{
+    protected $casts = [
+        'is_processed' => 'boolean',
+        'order_date' => 'datetime',
+    ];
+}
 ```
 
--   **Bad Practice:** Loading the relation unnecessarily.
+-   **Bad Practice:** Ignoring attribute casting, which can lead to unexpected behavior.
 
 ```php
-// This will load all the comments even if we only need to check their existence
-$posts = App\\Models\\Post::with('comments')->get()->filter(function ($post) {
-    return $post->comments->contains('content', 'like', '%Eloquent%');
-});
+class Order extends Model
+{
+    // Lack of casting may result in 'is_processed' being treated as a string
+}
 ```
 
-### Scenario 1: Filtering Relations Without Loading Them
+### Scenario 11: Selective Relationship Loading with Constraints
 
--   **Good Practice:** Use `whereHas` to filter relations without loading them.
+-   **Good Practice:** Load relations conditionally with constraints to reduce the dataset.
 
 ```php
 
-// Retrieve posts with at least one comment containing the word 'Eloquent'
-$posts = App\\Models\\Post::whereHas('comments', function ($query) {
-    $query->where('content', 'like', '%Eloquent%');
-})->get();
+// Load users with their recent active posts
+$users = App\\Models\\User::with(['posts' => function ($query) {
+    $query->where('created_at', '>', now()->subDays(30))
+          ->where('status', 'active');
+}])->get();
 ```
 
--   **Bad Practice:** Loading the relation unnecessarily.
+-   **Bad Practice:** Loading all related data regardless of the need.
 
 ```php
-// This will load all the comments even if we only need to check their existence
-$posts = App\\Models\\Post::with('comments')->get()->filter(function ($post) {
-    return $post->comments->contains('content', 'like', '%Eloquent%');
-});
+// Retrieves all posts for each user
+$users = App\\Models\\User::with('posts')->get();
 ```
