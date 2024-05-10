@@ -1,0 +1,7 @@
+Relationships:
+
+    -: one to one
+    -: one to many
+    -: many to many
+    -: has many throgh
+    -: polymorphic relationships
