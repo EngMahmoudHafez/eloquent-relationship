@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Affiliation;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,5 +15,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
+
+    $learn = Affiliation::find(1);
+    $learn->posts()->get();
     return view('welcome');
 });
